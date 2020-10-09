@@ -77,7 +77,6 @@ class RX(object):
         while(self.getBufferLen() < size):
             counting = time.time()
             tempo_esperando = counting - start
-            print ("esperando servidor responder a {} segundos" .format(tempo_esperando))
             if tempo_esperando > timer:
                 return False
             time.sleep(0.05)

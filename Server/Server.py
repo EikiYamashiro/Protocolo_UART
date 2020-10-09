@@ -87,8 +87,8 @@ def create_tipo5():
     datagrama = head + eop
     return datagrama
 
-def create_tipo6(h6):
-    head = tipo6 + (0).to_bytes(4, 'big') + h6.to_bytes(1, 'big') + (0).to_bytes(2, 'big') + CRC
+def create_tipo6(h6, h7):
+    head = tipo6 + (0).to_bytes(5, 'big') + h6.to_bytes(1, 'big') + h7 + CRC
     datagrama = head + eop
     return datagrama
 
@@ -143,7 +143,7 @@ def main():
         antecede_number = 0
         last_package = 0
         while True:
-            
+            error = False
             #----------------------GET--HEAD--------------------------
             head = com2.rx.getNOnTime(10, 10)
             if head == False:
@@ -156,37 +156,25 @@ def main():
             sizeMensagem = head[3]
             numeroPacote = head[4]
             crc_recebido = head[8:]
-            if sizeMensagem != real_size_mensagem:
-                print("Quantidade total de pacotes diferente do Real:")
-                print("Quantidade recebido pelo pacote {0} : {1} pacotes".format(numeroPacote, sizeMensagem))
-                print("Quantidade real recebida no handshake: {}".format(real_size_mensagem)) 
-                com2.sendData(create_tipo6(numeroPacote))
-                
-            if verifica_id != 1:
-                antecede_number += 1
+           
             print("sizeMensagem: {}".format(sizeMensagem))
             print("numeroPacote: {}".format(numeroPacote))
             print("sizePayload: {}".format(sizePayload))
             print("---------------------------------")
-            if sizePayload!=114 and sizeMensagem != verifica_id:
-                sizePayload = 114
-                error_print()
-                msg_error = "Comunicação com erro no datagrama de ID: {}".format(verifica_id)
-                com2.sendData(create_tipo6(verifica_id))
             if verifica_id != numeroPacote:
-                msg_error = "Comunicação com erro no datagrama de ID: {}".format(verifica_id) 
-                com2.sendData(create_tipo6(verifica_id))
-                
+                print("Pacote {}: Erro na ordem dos pacotes".format(verifica_id))
+                error = True
             #---------------------GET--PAYLOAD-------------------------
             print("Recebendo PAYLOAD do Client...")
             print("---------------------------------")
             payload, nRx = com2.getData(sizePayload)
             crc_check = crc_out = crc16_func(payload).to_bytes(2, "big")
             if crc_check != crc_recebido:
-                print("Mensagem com Erro - CRCs Diferentes!")
-                com2.sendData(create_tipo6(numeroPacote))
+                print("Pacote {}: CRCs Diferentes!".format(verifica_id))
+                error = True
             else: 
-                list_payload.append(payload)
+                if error != True:
+                    list_payload.append(payload)
             #-----------------------GET--EOP---------------------------
             eop, nRx = com2.getData(4)
             print("Recebendo EOP do Client...")
@@ -194,12 +182,16 @@ def main():
             time.sleep(0.5)
             print(" ")
             print(" ")
-            verifica_id += 1
+            
             if eop != b'\x00\x00\t\x00':
                 break
-            last_package = int(numeroPacote)
-            com2.sendData(create_tipo4((last_package).to_bytes(1, 'big')))
-            
+            if error == True:
+                com2.sendData(create_tipo6(verifica_id, (last_package).to_bytes(1, 'big')))
+                print(verifica_id)
+            else:
+                last_package = int(numeroPacote)
+                com2.sendData(create_tipo4((last_package).to_bytes(1, 'big')))
+                verifica_id += 1
             time.sleep(2)
             if sizeMensagem == numeroPacote:
                 com2.sendData(create_tipo4((last_package).to_bytes(1, 'big')))

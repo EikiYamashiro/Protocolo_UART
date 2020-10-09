@@ -169,13 +169,17 @@ def main():
                  confirmacao_server = com1.rx.getNOnTime(14, 20)
                  head_server = getHead(confirmacao_server)
                  if head_server[0].to_bytes(1, 'big') == tipo4: 
-                     print("Ultimo pacote recebido pelo servidor: {}".format(head_server[7]))
+                     print("Ultimo pacote recebido pelo servidor com sucesso: {}".format(head_server[7]))
                  if head_server[0].to_bytes(1, 'big') == tipo5:
                      print("Tempo de comunicação esgotado, fechando comunicação com server...")
                      break
                  if head_server[0].to_bytes(1, 'big') == tipo6:
-                     i = head_server[6] - 2
-                 
+                     print("Pacote {} não recebido pelo servidor com sucesso!".format(head_server[6]))
+                     i = head_server[6] - 1
+                 if head_server == False:
+                     print("Ausência de resposta de pacote de dados recebido, por mais de 20 segundos")
+                     break
+            print("i: ", i)     
             datagrama = datagrama_list[i]
             head = getHead(datagrama)
             payload = getPayload(datagrama)
@@ -183,10 +187,15 @@ def main():
             i += 1  
             print("Enviando Pacote {} para o Servidor...".format(head[4]))
             print("-----------------------------------")
-            
-           
             #---------------------SEND--HEAD-------------------------
-            com1.sendData(head)
+            if head[4]==2:
+                 head_fake = head
+            if head[4]==3 and fake==True:
+                print("Entrou no Fake!")
+                fake = False
+                com1.sendData(head_fake)
+            else:
+                com1.sendData(head)
             time.sleep(0.5)                     
             #-------------------SEND--PAYLOAD------------------------
             com1.sendData(payload)
