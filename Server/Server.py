@@ -9,6 +9,8 @@ from enlace import enlace
 import time
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
+import crcmod
+
 
 #EOP definido como 2304:
 eop = (2304).to_bytes(4, 'big')
@@ -111,6 +113,8 @@ def error_print():
 
 def main():
     try:
+        crc16_func = crcmod.mkCrcFun(0x11021, initCrc=0, xorOut=0xFFFFFFFF)
+        
         msg_error = "Comunicação sem erros!"
         com2 = enlace('COM3')
         com2.enable() 
@@ -151,6 +155,7 @@ def main():
             sizePayload = head[5]
             sizeMensagem = head[3]
             numeroPacote = head[4]
+            crc_recebido = head[8:]
             if sizeMensagem != real_size_mensagem:
                 print("Quantidade total de pacotes diferente do Real:")
                 print("Quantidade recebido pelo pacote {0} : {1} pacotes".format(numeroPacote, sizeMensagem))
@@ -173,11 +178,15 @@ def main():
                 com2.sendData(create_tipo6(verifica_id))
                 
             #---------------------GET--PAYLOAD-------------------------
-            payload, nRx = com2.getData(sizePayload)
             print("Recebendo PAYLOAD do Client...")
             print("---------------------------------")
-            list_payload.append(payload)
-            
+            payload, nRx = com2.getData(sizePayload)
+            crc_check = crc_out = crc16_func(payload).to_bytes(2, "big")
+            if crc_check != crc_recebido:
+                print("Mensagem com Erro - CRCs Diferentes!")
+                com2.sendData(create_tipo6(numeroPacote))
+            else: 
+                list_payload.append(payload)
             #-----------------------GET--EOP---------------------------
             eop, nRx = com2.getData(4)
             print("Recebendo EOP do Client...")

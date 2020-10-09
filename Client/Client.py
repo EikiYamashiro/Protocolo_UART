@@ -10,8 +10,7 @@ import time
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 import math
-
-
+import crcmod
 
 zero_bytes = (0).to_bytes(1, 'big')
 
@@ -29,7 +28,7 @@ idServer = (1).to_bytes(1, 'big')
 idArquivo = (1).to_bytes(1, 'big')
 
 #CRC
-CRC = (1).to_bytes(2, 'big')
+CRC_fake = (1).to_bytes(2, 'big')
 
 #success
 success = (1).to_bytes(1, 'big')
@@ -65,17 +64,17 @@ def getEop(datagrama):
     return datagrama[-4:]
 
 def create_handshake(size_arquivo):
-    head = create_head((0).to_bytes(1, 'big'), size_arquivo, (0).to_bytes(1, byteorder='big'), tipo1)
+    head = create_head((0).to_bytes(1, 'big'), size_arquivo, (0).to_bytes(1, byteorder='big'), tipo1, CRC_fake)
     datagrama = head + eop
     return datagrama
 
 
 
-def create_head(contador, sizeMensagem, sizePayload, tipoMensagem):
+def create_head(contador, sizeMensagem, sizePayload, tipoMensagem, crc):
     if tipoMensagem == tipo1:
-        head = tipoMensagem + idClient + idServer + sizeMensagem + contador + idArquivo + restart + success + CRC
+        head = tipoMensagem + idClient + idServer + sizeMensagem + contador + idArquivo + restart + success + CRC_fake
     else:
-        head = tipoMensagem + idClient + idServer + sizeMensagem + contador + sizePayload + restart + success + CRC
+        head = tipoMensagem + idClient + idServer + sizeMensagem + contador + sizePayload + restart + success + crc
     return head
     
 
@@ -87,19 +86,22 @@ def create_datagram_list(mensagem):
     sizeMensagem_int = math.ceil(len(mensagem)/114)
     sizeMensagem = sizeMensagem_int.to_bytes(1, byteorder='big')
     dg_list = []
+    crc16_func = crcmod.mkCrcFun(0x11021, initCrc=0, xorOut=0xFFFFFFFF)
     #Cada rodada cria um novo payload
     while c_total < len(mensagem)-1:
         
         if len(mensagem)-contador < 114:
             payload = mensagem[contador:]
-            head = create_head(ID.to_bytes(1, 'big'), sizeMensagem, len(payload).to_bytes(1, byteorder='big'), tipo3)
+            crc = crc_out = crc16_func(payload).to_bytes(2, "big")
+            head = create_head(ID.to_bytes(1, 'big'), sizeMensagem, len(payload).to_bytes(1, byteorder='big'), tipo3, crc)
             datagrama = head + payload + eop
             dg_list.append(datagrama)
             ID += 1
             break
         else:
             payload = mensagem[0+contador:114+contador]
-            head = create_head(ID.to_bytes(1, 'big'), sizeMensagem, len(payload).to_bytes(1, byteorder='big'), tipo3)
+            crc = crc_out = crc16_func(payload).to_bytes(2, "big")
+            head = create_head(ID.to_bytes(1, 'big'), sizeMensagem, len(payload).to_bytes(1, byteorder='big'), tipo3, crc)
             
             datagrama = head + payload + eop
             contador += 114
@@ -143,7 +145,7 @@ def main():
         print("ENVIANDO HANDSHAKE")
         t = True
         while t==True:
-            com1 = enlace('COM2') 
+            com1 = enlace('COM4') 
             com1.enable()
             com1.sendData(handshake)
             handshake_recebido = com1.rx.getNOnTime(14, 5)
