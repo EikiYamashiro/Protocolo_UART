@@ -189,6 +189,8 @@ def main():
                 print(verifica_id)
             else:
                 last_package = int(numeroPacote)
+                if verifica_id == 3:
+                    time.sleep(20)
                 com2.sendData(create_tipo4((last_package).to_bytes(1, 'big')))
                 verifica_id += 1
             time.sleep(2)

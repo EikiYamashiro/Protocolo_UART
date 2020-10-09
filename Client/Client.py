@@ -68,7 +68,10 @@ def create_handshake(size_arquivo):
     datagrama = head + eop
     return datagrama
 
-
+def create_tipo5():
+    head = tipo5 + (0).to_bytes(9, 'big')
+    datagrama = head + eop
+    return datagrama
 
 def create_head(contador, sizeMensagem, sizePayload, tipoMensagem, crc):
     if tipoMensagem == tipo1:
@@ -178,6 +181,7 @@ def main():
                      i = head_server[6] - 1
                  if head_server == False:
                      print("Ausência de resposta de pacote de dados recebido, por mais de 20 segundos")
+                     #com1.sendData(create_tipo5())
                      break
             print("i: ", i)     
             datagrama = datagrama_list[i]
@@ -188,14 +192,13 @@ def main():
             print("Enviando Pacote {} para o Servidor...".format(head[4]))
             print("-----------------------------------")
             #---------------------SEND--HEAD-------------------------
-            if head[4]==2:
-                 head_fake = head
-            if head[4]==3 and fake==True:
-                print("Entrou no Fake!")
-                fake = False
-                com1.sendData(head_fake)
-            else:
-                com1.sendData(head)
+            #if head[4]==2:
+             #    head_fake = head
+            #if head[4]==3 and fake==True:
+                #print("Entrou no Fake!")
+                #fake = False
+               # com1.sendData(head_fake)            
+            com1.sendData(head)
             time.sleep(0.5)                     
             #-------------------SEND--PAYLOAD------------------------
             com1.sendData(payload)
