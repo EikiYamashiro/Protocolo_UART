@@ -182,7 +182,6 @@ def main():
             time.sleep(0.5)
             print(" ")
             print(" ")
-            
             if eop != b'\x00\x00\t\x00':
                 break
             if error == True:
