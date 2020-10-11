@@ -1,3 +1,4 @@
+  
 #####################################################
 # Camada Física da Computação
 #Carareto
@@ -10,7 +11,8 @@ import time
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 import crcmod
-
+import logging
+logging.basicConfig(filename='server_2.log', filemode='w', format='CLIENT - %(asctime)s - %(message)s', level=logging.INFO)
 
 #EOP definido como 2304:
 eop = (2304).to_bytes(4, 'big')
@@ -119,9 +121,11 @@ def main():
         com2 = enlace('COM3')
         com2.enable() 
         print("Server disponível")
+        logging.info(f"SERVER DISPONÍVEL")
         com2.rx.getIsEmpty()
         #----------------------GET--HANDSAHKE-------------------------
         handshake_recebido, nRx = com2.getData(14)
+        logging.info(f"RECEBIDO | TIPO: 1 | TAMANHO: 14")
         head_handshake = getHead(handshake_recebido)
         id_handshake = head_handshake[2]
         tipo_handshake = head_handshake[0]
@@ -137,6 +141,7 @@ def main():
         print("-------------------------------------")
         print(" ")
         com2.sendData(create_tipo2())
+        logging.info(f"ENVIADO | TIPO: 2 | TAMANHO: 14")
         imageW = "recebidaCopia.png"
         list_payload = []
         verifica_id = 1
@@ -146,6 +151,7 @@ def main():
             error = False
             #----------------------GET--HEAD--------------------------
             head = com2.rx.getNOnTime(10, 10)
+            logging.info(f"RECEBIDO HEAD| TIPO: 3 | TAMANHO: 10 | PACOTE: {head[4]} | TOTAL PACOTES: {head[3]} | CRC: {head[8:]}")
             if head == False:
                 print("Tempo esgotado")
                 com2.sendData(create_tipo5())
@@ -168,7 +174,10 @@ def main():
             print("Recebendo PAYLOAD do Client...")
             print("---------------------------------")
             payload, nRx = com2.getData(sizePayload)
-            crc_check = crc_out = crc16_func(payload).to_bytes(2, "big")
+            crc_check = crc16_func(payload).to_bytes(2, "big")
+            if error != True:
+                logging.info(f"RECEBIDO PAYLOAD| TIPO: 3 | TAMANHO: {head[5]} | PACOTE: {head[4]} | TOTAL PACOTES: {head[3]} | CRC: {crc_recebido}")
+            
             if crc_check != crc_recebido:
                 print("Pacote {}: CRCs Diferentes!".format(verifica_id))
                 error = True
@@ -179,23 +188,25 @@ def main():
             eop, nRx = com2.getData(4)
             print("Recebendo EOP do Client...")
             print("---------------------------------")
+            if error != True:
+                logging.info("RECEBIDO EOP | TIPO: 3 | TAMANHO: 4")
             time.sleep(0.5)
             print(" ")
             print(" ")
+            
             if eop != b'\x00\x00\t\x00':
                 break
             if error == True:
                 com2.sendData(create_tipo6(verifica_id, (last_package).to_bytes(1, 'big')))
+                logging.info("ENVIADO | TIPO: 6 | TAMANHO: 14")
                 print(verifica_id)
             else:
                 last_package = int(numeroPacote)
-                if verifica_id == 3:
-                    time.sleep(20)
                 com2.sendData(create_tipo4((last_package).to_bytes(1, 'big')))
+                logging.info("ENVIADO | TIPO: 4 | TAMANHO: 14")
                 verifica_id += 1
             time.sleep(2)
             if sizeMensagem == numeroPacote:
-                com2.sendData(create_tipo4((last_package).to_bytes(1, 'big')))
                 break
            
         

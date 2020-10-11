@@ -1,3 +1,4 @@
+  
 #####################################################
 # Camada Física da Computação
 #Carareto
@@ -11,6 +12,8 @@ from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 import math
 import crcmod
+import logging
+logging.basicConfig(filename='client_2.log', filemode='w', format='CLIENT - %(asctime)s - %(message)s', level=logging.INFO)
 
 zero_bytes = (0).to_bytes(1, 'big')
 
@@ -68,10 +71,7 @@ def create_handshake(size_arquivo):
     datagrama = head + eop
     return datagrama
 
-def create_tipo5():
-    head = tipo5 + (0).to_bytes(9, 'big')
-    datagrama = head + eop
-    return datagrama
+
 
 def create_head(contador, sizeMensagem, sizePayload, tipoMensagem, crc):
     if tipoMensagem == tipo1:
@@ -151,6 +151,7 @@ def main():
             com1 = enlace('COM4') 
             com1.enable()
             com1.sendData(handshake)
+            logging.info("ENVIADO | TIPO: 1 | TAMANHO: 14")
             handshake_recebido = com1.rx.getNOnTime(14, 5)
             if  handshake_recebido == False:
                 resp = input("Servidor inativo. Tentar novamente? S/N")
@@ -161,6 +162,7 @@ def main():
             else:
                 t = False
                 print("HANDSHAKE RECEBIDO")
+                logging.info("RECEBIDO | TIPO: 2 | TAMANHO: 14")
                 print("Tipo do Handshake: {}".format(handshake_recebido[0]))
         print("-----------------------------------")
         fake = True 
@@ -173,15 +175,17 @@ def main():
                  head_server = getHead(confirmacao_server)
                  if head_server[0].to_bytes(1, 'big') == tipo4: 
                      print("Ultimo pacote recebido pelo servidor com sucesso: {}".format(head_server[7]))
+                     logging.info(f"RECEBIDO | TIPO: 4 | TAMANHO: 14 | ULTIMO PACOTE RECEBIDO PELO SERVIDOR COM SUCESSO: {head_server[7]}")
                  if head_server[0].to_bytes(1, 'big') == tipo5:
                      print("Tempo de comunicação esgotado, fechando comunicação com server...")
+                     logging.info("RECEBIDO | TIPO: 5 | TAMANHO: 14")
                      break
                  if head_server[0].to_bytes(1, 'big') == tipo6:
                      print("Pacote {} não recebido pelo servidor com sucesso!".format(head_server[6]))
+                     logging.info("RECEBIDO | TIPO: 6 | TAMANHO: 14")
                      i = head_server[6] - 1
                  if head_server == False:
                      print("Ausência de resposta de pacote de dados recebido, por mais de 20 segundos")
-                     #com1.sendData(create_tipo5())
                      break
             print("i: ", i)     
             datagrama = datagrama_list[i]
@@ -192,26 +196,32 @@ def main():
             print("Enviando Pacote {} para o Servidor...".format(head[4]))
             print("-----------------------------------")
             #---------------------SEND--HEAD-------------------------
-            #if head[4]==2:
-             #    head_fake = head
-            #if head[4]==3 and fake==True:
-                #print("Entrou no Fake!")
-                #fake = False
-               # com1.sendData(head_fake)            
-            com1.sendData(head)
+            if head[4]==2:
+                 head_fake = head
+            if head[4]==3 and fake==True:
+                print("Entrou no Fake!")
+                fake = False
+                com1.sendData(head_fake)
+                logging.info(f"ENVIADO HEAD| TIPO: 3 | TAMANHO: 10 | PACOTE: {head[4]} | TOTAL PACOTES: {head[3]} | CRC: {head[8:]}")
+            else:
+                com1.sendData(head)
+                logging.info(f"ENVIADO HEAD| TIPO: 3 | TAMANHO: 10 | PACOTE: {head[4]} | TOTAL PACOTES: {head[3]} | CRC: {head[8:]}")
             time.sleep(0.5)                     
             #-------------------SEND--PAYLOAD------------------------
             com1.sendData(payload)
+            logging.info("ENVIADO PAYLOAD | TIPO: 3 | TAMANHO: {}".format(head[5]))
             time.sleep(0.5)
             #---------------------SEND--EOP--------------------------
             com1.sendData(eop)
+            logging.info("ENVIADO EOP | TIPO: 3 | TAMANHO: 4")
             time.sleep(0.5)
                 
         confirmacao_server = com1.rx.getNOnTime(14, 20)
         head_server = getHead(confirmacao_server)
         if head_server[0].to_bytes(1, 'big') == tipo4: 
-            print("Ultimo pacote recebido pelo servidor: {}".format(head_server[7]))   
-            
+            print("Ultimo pacote recebido pelo servidor: {}".format(head_server[7]))
+            logging.info(f"RECEBIDO | TIPO: 4 | TAMANHO: 14 | ULTIMO PACOTE RECEBIDO PELO SERVIDOR COM SUCESSO: {head_server[7]}")
+                             
         print("Todos Pacotes Enviados!")
         
         # Encerra comunicação
