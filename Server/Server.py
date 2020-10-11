@@ -12,7 +12,7 @@ from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 import crcmod
 import logging
-logging.basicConfig(filename='server_2.log', filemode='w', format='CLIENT - %(asctime)s - %(message)s', level=logging.INFO)
+logging.basicConfig(filename='server_3.log', filemode='w', format='CLIENT - %(asctime)s - %(message)s', level=logging.INFO)
 
 #EOP definido como 2304:
 eop = (2304).to_bytes(4, 'big')

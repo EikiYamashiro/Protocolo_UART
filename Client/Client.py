@@ -13,7 +13,7 @@ from tkinter.filedialog import askopenfilename
 import math
 import crcmod
 import logging
-logging.basicConfig(filename='client_2.log', filemode='w', format='CLIENT - %(asctime)s - %(message)s', level=logging.INFO)
+logging.basicConfig(filename='client_3.log', filemode='w', format='CLIENT - %(asctime)s - %(message)s', level=logging.INFO)
 
 zero_bytes = (0).to_bytes(1, 'big')
 
@@ -196,16 +196,8 @@ def main():
             print("Enviando Pacote {} para o Servidor...".format(head[4]))
             print("-----------------------------------")
             #---------------------SEND--HEAD-------------------------
-            if head[4]==2:
-                 head_fake = head
-            if head[4]==3 and fake==True:
-                print("Entrou no Fake!")
-                fake = False
-                com1.sendData(head_fake)
-                logging.info(f"ENVIADO HEAD| TIPO: 3 | TAMANHO: 10 | PACOTE: {head[4]} | TOTAL PACOTES: {head[3]} | CRC: {head[8:]}")
-            else:
-                com1.sendData(head)
-                logging.info(f"ENVIADO HEAD| TIPO: 3 | TAMANHO: 10 | PACOTE: {head[4]} | TOTAL PACOTES: {head[3]} | CRC: {head[8:]}")
+            com1.sendData(head)
+            logging.info(f"ENVIADO HEAD| TIPO: 3 | TAMANHO: 10 | PACOTE: {head[4]} | TOTAL PACOTES: {head[3]} | CRC: {head[8:]}")
             time.sleep(0.5)                     
             #-------------------SEND--PAYLOAD------------------------
             com1.sendData(payload)
